@@ -1,0 +1,9 @@
+[package]
+name = "qs"
+version = "0.1.0"
+authors = ["Yukinari Tani <yukinarit84@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+quicksilver = "0.3.16"
+serde = { version = "1.0", features = ["derive"] }
