@@ -27,13 +27,26 @@ impl Game {
 }
 
 trait GameObject {
-    fn draw(&mut self, window: &mut Window) -> Result<()>;
+    fn update(&mut self, _: &mut Window) -> Result<()> { Ok(()) }
+    fn draw(&mut self, _: &mut Window) -> Result<()> { Ok(()) }
 }
 
 struct Background {
-    pos: Vector,
+    left: Vector,
+    right: Vector,
     size: Vector,
     img: Asset<Image>,
+}
+
+impl Background {
+    fn new(size: Vector, img: Asset<Image>) -> Self {
+        Background {
+            left: Vector::ZERO,
+            right: size.x_comp() + Vector::new(0.5, 0).x_comp(),
+            size,
+            img,
+        }
+    }
 }
 
 struct Player {
@@ -43,11 +56,34 @@ struct Player {
 }
 
 impl GameObject for Background {
+    fn update(&mut self, _: &mut Window) -> Result<()> {
+        self.left = self.scroll(&self.left, -0.5);
+        self.right = self.scroll(&self.right, -0.5);
+        Ok(())
+    }
+
     fn draw(&mut self, window: &mut Window) -> Result<()> {
+        let size = window.screen_size();
+        let left = Rectangle::new(self.left, size);
+        let right = Rectangle::new(self.right, size);
         self.img.execute(|img| {
-            window.draw(&window_rect(&window), Img(&img));
+            window.draw(&left, Img(&img));
+            window.draw(&right, Img(&img));
             Ok(())
         })
+    }
+}
+
+impl Background {
+    fn scroll(&self, xy: &Vector, dx: f32) -> Vector {
+        let mut xy = xy.clone();
+        xy.x += dx;
+
+        if xy.x < -self.size.x {
+            xy.x += self.size.x;
+        }
+
+        xy
     }
 }
 
@@ -66,21 +102,24 @@ fn window_rect(window: &Window) -> Rectangle {
     Rectangle::new(Vector::ZERO, window.screen_size())
 }
 
+fn rect(x1: f32, y1: f32, x2: f32, y2: f32) -> Rectangle {
+    Rectangle::new(Vector::new(x1, y1), Vector::new(x2, y2))
+}
+
 impl State for Game {
     fn new() -> Result<Game> {
         Ok(Game {
             cfg: None,
-            bg: Background {
-                pos: Vector::ZERO,
-                size: Vector::new(144, 256),
-                img: Asset::new(
+            bg: Background::new(
+                Vector::new(144, 256),
+                Asset::new(
                     Image::load("sprite.png").map(|img| {
                         img.subimage(Rectangle::new(Vector::ZERO, Vector::new(144, 256)))
                     }),
                 ),
-            },
+            ),
             player: Player {
-                pos: Vector::ZERO,
+                pos: Vector::new(70, 20),
                 size: Vector::new(17, 12) * 3,
                 img: Asset::new(Image::load("sprite.png").map(|img| {
                     img.subimage(Rectangle::new(Vector::new(264, 64), Vector::new(17, 12)))
@@ -89,17 +128,18 @@ impl State for Game {
         })
     }
 
-    fn update(&mut self, _window: &mut Window) -> Result<()> {
+    fn update(&mut self, window: &mut Window) -> Result<()> {
         // Gravity.
         self.player.pos.y += 1.0;
+        self.bg.update(window)?;
 
         Ok(())
     }
 
-    fn draw(&mut self, mut window: &mut Window) -> Result<()> {
+    fn draw(&mut self, window: &mut Window) -> Result<()> {
         window.clear(Color::WHITE)?;
-        self.bg.draw(&mut window)?;
-        self.player.draw(&mut window)?;
+        self.bg.draw(window)?;
+        self.player.draw(window)?;
 
         Ok(())
     }
