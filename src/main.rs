@@ -13,9 +13,9 @@ struct Config {
 }
 
 struct Game {
-    cfg: Option<Config>,
-    bg: Background,
-    player: Player,
+    pub cfg: Option<Config>,
+    pub bg: Background,
+    pub player: Player,
 }
 
 impl Game {
@@ -27,23 +27,27 @@ impl Game {
 }
 
 trait GameObject {
-    fn update(&mut self, _: &mut Window) -> Result<()> { Ok(()) }
-    fn draw(&mut self, _: &mut Window) -> Result<()> { Ok(()) }
+    fn update(&mut self, _: &mut Window) -> Result<()> {
+        Ok(())
+    }
+    fn draw(&mut self, _: &mut Window) -> Result<()> {
+        Ok(())
+    }
 }
 
 struct Background {
-    left: Vector,
-    right: Vector,
+    pos: Vector,
     size: Vector,
+    screen_size: Vector,
     img: Asset<Image>,
 }
 
 impl Background {
     fn new(size: Vector, img: Asset<Image>) -> Self {
         Background {
-            left: Vector::ZERO,
-            right: size.x_comp() + Vector::new(0.5, 0).x_comp(),
+            pos: Vector::ZERO,
             size,
+            screen_size: Vector::ZERO,
             img,
         }
     }
@@ -56,16 +60,16 @@ struct Player {
 }
 
 impl GameObject for Background {
-    fn update(&mut self, _: &mut Window) -> Result<()> {
-        self.left = self.scroll(&self.left, -0.5);
-        self.right = self.scroll(&self.right, -0.5);
+    fn update(&mut self, window: &mut Window) -> Result<()> {
+        self.set_screen_size(window.screen_size());
+        self.scroll(-0.5, window.screen_size().x);
         Ok(())
     }
 
     fn draw(&mut self, window: &mut Window) -> Result<()> {
         let size = window.screen_size();
-        let left = Rectangle::new(self.left, size);
-        let right = Rectangle::new(self.right, size);
+        let left = Rectangle::new(self.pos, size);
+        let right = self.right();
         self.img.execute(|img| {
             window.draw(&left, Img(&img));
             window.draw(&right, Img(&img));
@@ -75,15 +79,41 @@ impl GameObject for Background {
 }
 
 impl Background {
-    fn scroll(&self, xy: &Vector, dx: f32) -> Vector {
-        let mut xy = xy.clone();
-        xy.x += dx;
+    fn set_screen_size(&mut self, size: Vector) {
+        self.screen_size = size
+    }
 
-        if xy.x < -self.size.x {
-            xy.x += self.size.x;
+    fn fit(&self, xy: &Vector) -> Vector {
+        let mut xy = xy.clone();
+        if xy.x < -self.screen_size.x {
+            xy.x = self.screen_size.x;
         }
 
         xy
+    }
+
+    fn right(&self) -> Rectangle {
+        let right = if self.pos.x < 0.0 {
+            self.pos + self.screen_size.x_comp() - Vector::new(1.0, 0.0).x_comp()
+        } else {
+            self.pos - self.screen_size.x_comp() + Vector::new(1.0, 0.0).x_comp()
+        };
+        Rectangle::new(self.fit(&right), self.screen_size)
+    }
+
+    fn scroll(&mut self, dx: f32, screen_width: f32) {
+        self.pos.x += dx;
+        self.pos = self.fit(&self.pos);
+
+        /*
+        println!(
+            "scrolling background dx={}, width={}, left={}, right={}",
+            dx,
+            screen_width,
+            self.pos,
+            self.right().pos,
+        );
+        */
     }
 }
 
@@ -120,7 +150,7 @@ impl State for Game {
             ),
             player: Player {
                 pos: Vector::new(70, 20),
-                size: Vector::new(17, 12) * 3,
+                size: Vector::new(17, 12) * 2,
                 img: Asset::new(Image::load("sprite.png").map(|img| {
                     img.subimage(Rectangle::new(Vector::new(264, 64), Vector::new(17, 12)))
                 })),
@@ -157,7 +187,7 @@ impl State for Game {
 }
 
 fn main() {
-    let screen_size = Vector::new(432, 768);
+    let screen_size = Vector::new(277, 512);
     let cfg = Config { screen_size };
     run_with("FlappyFerris", screen_size, Settings::default(), || {
         Game::create(cfg)

@@ -1,5 +1,5 @@
 [package]
-name = "qs"
+name = "flappy_ferris"
 version = "0.1.0"
 authors = ["Yukinari Tani <yukinarit84@gmail.com>"]
 edition = "2018"
