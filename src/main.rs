@@ -53,12 +53,6 @@ impl Background {
     }
 }
 
-struct Player {
-    pos: Vector,
-    size: Vector,
-    img: Asset<Image>,
-}
-
 impl GameObject for Background {
     fn update(&mut self, window: &mut Window) -> Result<()> {
         self.set_screen_size(window.screen_size());
@@ -67,8 +61,7 @@ impl GameObject for Background {
     }
 
     fn draw(&mut self, window: &mut Window) -> Result<()> {
-        let size = window.screen_size();
-        let left = Rectangle::new(self.pos, size);
+        let left = self.left();
         let right = self.right();
         self.img.execute(|img| {
             window.draw(&left, Img(&img));
@@ -92,13 +85,17 @@ impl Background {
         xy
     }
 
+    fn left(&self) -> Rectangle {
+        Rectangle::new(self.pos, self.screen_size + Vector::new(0.5, 0.0))
+    }
+
     fn right(&self) -> Rectangle {
         let right = if self.pos.x < 0.0 {
-            self.pos + self.screen_size.x_comp() - Vector::new(1.0, 0.0).x_comp()
+            self.pos + self.screen_size.x_comp()
         } else {
-            self.pos - self.screen_size.x_comp() + Vector::new(1.0, 0.0).x_comp()
+            self.pos - self.screen_size.x_comp()
         };
-        Rectangle::new(self.fit(&right), self.screen_size)
+        Rectangle::new(self.fit(&right), self.screen_size + Vector::new(0.5, 0.0))
     }
 
     fn scroll(&mut self, dx: f32, screen_width: f32) {
@@ -115,6 +112,12 @@ impl Background {
         );
         */
     }
+}
+
+struct Player {
+    pos: Vector,
+    size: Vector,
+    img: Asset<Image>,
 }
 
 impl GameObject for Player {
@@ -150,10 +153,8 @@ impl State for Game {
             ),
             player: Player {
                 pos: Vector::new(70, 20),
-                size: Vector::new(17, 12) * 2,
-                img: Asset::new(Image::load("sprite.png").map(|img| {
-                    img.subimage(Rectangle::new(Vector::new(264, 64), Vector::new(17, 12)))
-                })),
+                size: Vector::new(60, 40),
+                img: Asset::new(Image::load("ferris.png")),
             },
         })
     }
