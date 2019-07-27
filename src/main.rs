@@ -6,6 +6,7 @@ use quicksilver::{
     Result,
 };
 use serde::Deserialize;
+use log::*;
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -102,15 +103,13 @@ impl Background {
         self.pos.x += dx;
         self.pos = self.fit(&self.pos);
 
-        /*
-        println!(
+        debug!(
             "scrolling background dx={}, width={}, left={}, right={}",
             dx,
             screen_width,
             self.pos,
             self.right().pos,
         );
-        */
     }
 }
 
@@ -187,7 +186,12 @@ impl State for Game {
     }
 }
 
+fn init_logger() {
+    console_log::init_with_level(log::Level::Debug).expect("Couldn't setup logger.");
+}
+
 fn main() {
+    init_logger();
     let screen_size = Vector::new(277, 512);
     let cfg = Config { screen_size };
     run_with("FlappyFerris", screen_size, Settings::default(), || {
