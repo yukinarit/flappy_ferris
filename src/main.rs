@@ -1,3 +1,5 @@
+mod asset;
+
 use quicksilver::prelude::*;
 use quicksilver::{
     geom::{Rectangle, Vector},
@@ -7,6 +9,8 @@ use quicksilver::{
 };
 use serde::Deserialize;
 use log::*;
+
+use asset::{AssetLoader, Asset};
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -43,16 +47,6 @@ struct Background {
     img: Asset<Image>,
 }
 
-impl Background {
-    fn new(size: Vector, img: Asset<Image>) -> Self {
-        Background {
-            pos: Vector::ZERO,
-            size,
-            screen_size: Vector::ZERO,
-            img,
-        }
-    }
-}
 
 impl GameObject for Background {
     fn update(&mut self, window: &mut Window) -> Result<()> {
@@ -73,6 +67,19 @@ impl GameObject for Background {
 }
 
 impl Background {
+    fn new(size: Vector) -> Self {
+        Background {
+            pos: Vector::ZERO,
+            size,
+            screen_size: Vector::ZERO,
+            img: Asset::new(
+                    Image::load("sprite.png").map(|img| {
+                        img.subimage(Rectangle::new(Vector::ZERO, Vector::new(144, 256)))
+                    }),
+                ),
+        }
+    }
+
     fn set_screen_size(&mut self, size: Vector) {
         self.screen_size = size
     }
@@ -119,6 +126,12 @@ struct Player {
     img: Asset<Image>,
 }
 
+impl Player {
+    fn new(pos: Vector, size: Vector) -> Self {
+        Player { pos, size, img: Asset::new(Image::load("ferris.png")) } 
+    }
+}
+
 impl GameObject for Player {
     fn draw(&mut self, window: &mut Window) -> Result<()> {
         let rect = Rectangle::new(self.pos, self.size);
@@ -142,19 +155,8 @@ impl State for Game {
     fn new() -> Result<Game> {
         Ok(Game {
             cfg: None,
-            bg: Background::new(
-                Vector::new(144, 256),
-                Asset::new(
-                    Image::load("sprite.png").map(|img| {
-                        img.subimage(Rectangle::new(Vector::ZERO, Vector::new(144, 256)))
-                    }),
-                ),
-            ),
-            player: Player {
-                pos: Vector::new(70, 20),
-                size: Vector::new(60, 40),
-                img: Asset::new(Image::load("ferris.png")),
-            },
+            bg: Background::new(Vector::new(144, 256)),
+            player: Player::new(Vector::new(70, 20), Vector::new(60, 40)),
         })
     }
 
