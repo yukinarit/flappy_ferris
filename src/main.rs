@@ -1,37 +1,29 @@
+mod asset;
+
+use std::ops::Deref;
+use std::rc::Rc;
+
+use log::*;
 use quicksilver::prelude::*;
 use quicksilver::{
     geom::{Rectangle, Vector},
-    graphics::Color,
     lifecycle::{run_with, Settings, State, Window},
     Result,
 };
 use serde::Deserialize;
-use log::*;
+
+use asset::AssetLoader;
 
 #[derive(Debug, Deserialize)]
 struct Config {
     screen_size: Vector,
 }
 
-struct Game {
-    pub cfg: Option<Config>,
-    pub bg: Background,
-    pub player: Player,
-}
-
-impl Game {
-    fn create(cfg: Config) -> Result<Self> {
-        let mut game = Game::new()?;
-        game.cfg = Some(cfg);
-        Ok(game)
-    }
-}
-
 trait GameObject {
     fn update(&mut self, _: &mut Window) -> Result<()> {
         Ok(())
     }
-    fn draw(&mut self, _: &mut Window) -> Result<()> {
+    fn draw(&mut self, _: &mut Window, _: Option<Rc<Image>>) -> Result<()> {
         Ok(())
     }
 }
@@ -40,18 +32,7 @@ struct Background {
     pos: Vector,
     size: Vector,
     screen_size: Vector,
-    img: Asset<Image>,
-}
-
-impl Background {
-    fn new(size: Vector, img: Asset<Image>) -> Self {
-        Background {
-            pos: Vector::ZERO,
-            size,
-            screen_size: Vector::ZERO,
-            img,
-        }
-    }
+    pub img: &'static str,
 }
 
 impl GameObject for Background {
@@ -61,18 +42,30 @@ impl GameObject for Background {
         Ok(())
     }
 
-    fn draw(&mut self, window: &mut Window) -> Result<()> {
+    fn draw(&mut self, window: &mut Window, img: Option<Rc<Image>>) -> Result<()> {
         let left = self.left();
         let right = self.right();
-        self.img.execute(|img| {
-            window.draw(&left, Img(&img));
-            window.draw(&right, Img(&img));
-            Ok(())
-        })
+        if let Some(img) = img {
+            let bg = img
+                .deref()
+                .subimage(Rectangle::new(Vector::ZERO, Vector::new(144, 256)));
+            window.draw(&left, Img(&bg));
+            window.draw(&right, Img(&bg));
+        }
+        Ok(())
     }
 }
 
 impl Background {
+    fn new(size: Vector) -> Self {
+        Background {
+            pos: Vector::ZERO,
+            size,
+            screen_size: Vector::ZERO,
+            img: "sprite.png",
+        }
+    }
+
     fn set_screen_size(&mut self, size: Vector) {
         self.screen_size = size
     }
@@ -116,16 +109,26 @@ impl Background {
 struct Player {
     pos: Vector,
     size: Vector,
-    img: Asset<Image>,
+    img: &'static str,
+}
+
+impl Player {
+    fn new(pos: Vector, size: Vector) -> Self {
+        Player {
+            pos,
+            size,
+            img: "ferris.png",
+        }
+    }
 }
 
 impl GameObject for Player {
-    fn draw(&mut self, window: &mut Window) -> Result<()> {
+    fn draw(&mut self, window: &mut Window, img: Option<Rc<Image>>) -> Result<()> {
         let rect = Rectangle::new(self.pos, self.size);
-        self.img.execute(|img| {
-            window.draw(&rect, Img(&img));
-            Ok(())
-        })
+        if let Some(img) = img {
+            window.draw(&rect, Img(&img.deref()));
+        }
+        Ok(())
     }
 }
 
@@ -138,43 +141,52 @@ fn rect(x1: f32, y1: f32, x2: f32, y2: f32) -> Rectangle {
     Rectangle::new(Vector::new(x1, y1), Vector::new(x2, y2))
 }
 
+struct Game {
+    pub cfg: Option<Config>,
+    pub bg: Background,
+    pub player: Player,
+    pub asset_loader: AssetLoader,
+}
+
+impl Game {
+    fn create(cfg: Config) -> Result<Self> {
+        let mut game = Game::new()?;
+        game.cfg = Some(cfg);
+        Ok(game)
+    }
+}
+
 impl State for Game {
     fn new() -> Result<Game> {
+        let mut asset_loader = AssetLoader::new();
+        asset_loader.load("sprite.png".into());
+        asset_loader.load("ferris.png".into());
+
         Ok(Game {
             cfg: None,
-            bg: Background::new(
-                Vector::new(144, 256),
-                Asset::new(
-                    Image::load("sprite.png").map(|img| {
-                        img.subimage(Rectangle::new(Vector::ZERO, Vector::new(144, 256)))
-                    }),
-                ),
-            ),
-            player: Player {
-                pos: Vector::new(70, 20),
-                size: Vector::new(60, 40),
-                img: Asset::new(Image::load("ferris.png")),
-            },
+            bg: Background::new(Vector::new(144, 256)),
+            player: Player::new(Vector::new(40, 20), Vector::new(60, 40)),
+            asset_loader,
         })
     }
 
     fn update(&mut self, window: &mut Window) -> Result<()> {
+        self.asset_loader.update();
+        self.bg.update(window)?;
         // Gravity.
         self.player.pos.y += 1.0;
-        self.bg.update(window)?;
 
         Ok(())
     }
 
     fn draw(&mut self, window: &mut Window) -> Result<()> {
-        window.clear(Color::WHITE)?;
-        self.bg.draw(window)?;
-        self.player.draw(window)?;
+        self.bg.draw(window, self.asset_loader.get(self.bg.img))?;
+        self.player.draw(window, self.asset_loader.get(self.player.img))?;
 
         Ok(())
     }
 
-    fn event(&mut self, event: &Event, window: &mut Window) -> Result<()> {
+    fn event(&mut self, event: &Event, _: &mut Window) -> Result<()> {
         match event {
             Event::MouseButton(_, ButtonState::Released) => {
                 self.player.pos.y -= 24.0;
@@ -187,14 +199,12 @@ impl State for Game {
 }
 
 fn init_logger() {
-    console_log::init_with_level(log::Level::Debug).expect("Couldn't setup logger.");
+    //console_log::init_with_level(log::Level::Debug).expect("Couldn't setup logger.");
 }
 
 fn main() {
     init_logger();
     let screen_size = Vector::new(277, 512);
     let cfg = Config { screen_size };
-    run_with("FlappyFerris", screen_size, Settings::default(), || {
-        Game::create(cfg)
-    });
+    run_with("FlappyFerris", screen_size, Settings::default(), || Game::create(cfg));
 }
