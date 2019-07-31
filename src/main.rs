@@ -2,6 +2,7 @@ mod asset;
 
 use std::ops::Deref;
 use std::rc::Rc;
+use std::time::Instant;
 
 use log::*;
 use quicksilver::prelude::*;
@@ -132,6 +133,41 @@ impl GameObject for Player {
     }
 }
 
+struct Pipe {
+    pos: Vector,
+    size: Vector,
+    img: &'static str,
+}
+
+impl Pipe {
+    fn new(pos: Vector, size: Vector) -> Self {
+        Pipe {
+            pos,
+            size,
+            img: "sprite.png",
+        }
+    }
+}
+
+impl GameObject for Pipe {
+    fn update(&mut self, _: &mut Window) -> Result<()> {
+        self.pos.x -= 0.5;
+        Ok(())
+    }
+
+    fn draw(&mut self, window: &mut Window, img: Option<Rc<Image>>) -> Result<()> {
+        let rect = Rectangle::new(self.pos, self.size);
+        if let Some(img) = img {
+            let pipe = img
+                .deref()
+                .subimage(Rectangle::new(Vector::new(302, 0), Vector::new(26, 135)));
+            window.draw(&rect, Img(&pipe));
+        }
+        Ok(())
+    }
+}
+
+
 /// Helper to get window rect.
 fn window_rect(window: &Window) -> Rectangle {
     Rectangle::new(Vector::ZERO, window.screen_size())
@@ -142,10 +178,12 @@ fn rect(x1: f32, y1: f32, x2: f32, y2: f32) -> Rectangle {
 }
 
 struct Game {
-    pub cfg: Option<Config>,
-    pub bg: Background,
-    pub player: Player,
-    pub asset_loader: AssetLoader,
+    cfg: Option<Config>,
+    bg: Background,
+    player: Player,
+    pipes: Vec<Pipe>,
+    asset_loader: AssetLoader,
+    last_spawned: Instant,
 }
 
 impl Game {
@@ -153,6 +191,10 @@ impl Game {
         let mut game = Game::new()?;
         game.cfg = Some(cfg);
         Ok(game)
+    }
+
+    fn spawn(&mut self, window: &mut Window) {
+        self.pipes.push(Pipe::new(Vector::new(window.screen_size().x, 0), Vector::new(26, 135)));
     }
 }
 
@@ -166,15 +208,26 @@ impl State for Game {
             cfg: None,
             bg: Background::new(Vector::new(144, 256)),
             player: Player::new(Vector::new(40, 20), Vector::new(60, 40)),
+            pipes: vec![],
             asset_loader,
+            last_spawned: Instant::now(),
         })
     }
 
     fn update(&mut self, window: &mut Window) -> Result<()> {
         self.asset_loader.update();
         self.bg.update(window)?;
+        for pipe in &mut self.pipes {
+            pipe.update(window)?;
+        }
+
         // Gravity.
         self.player.pos.y += 1.0;
+
+        if self.last_spawned.elapsed().as_secs() >= 3 {
+            self.spawn(window);
+            self.last_spawned = Instant::now();
+        }
 
         Ok(())
     }
@@ -182,6 +235,9 @@ impl State for Game {
     fn draw(&mut self, window: &mut Window) -> Result<()> {
         self.bg.draw(window, self.asset_loader.get(self.bg.img))?;
         self.player.draw(window, self.asset_loader.get(self.player.img))?;
+        for pipe in &mut self.pipes {
+            pipe.draw(window, self.asset_loader.get(pipe.img))?;
+        }
 
         Ok(())
     }
