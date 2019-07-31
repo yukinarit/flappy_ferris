@@ -1,4 +1,5 @@
 mod asset;
+mod compat;
 
 use std::ops::Deref;
 use std::rc::Rc;
@@ -20,22 +21,28 @@ struct Config {
 }
 
 trait GameObject {
+    fn resource(&self) -> &'static str;
     fn update(&mut self, _: &mut Window) -> Result<()> {
         Ok(())
     }
     fn draw(&mut self, _: &mut Window, _: Option<Rc<Image>>) -> Result<()> {
         Ok(())
     }
+    fn area(&self) -> Rectangle;
+    fn on_collided(&mut self, other: &GameObject) {}
 }
 
 struct Background {
     pos: Vector,
     size: Vector,
     screen_size: Vector,
-    pub img: &'static str,
 }
 
 impl GameObject for Background {
+    fn resource(&self) -> &'static str {
+        "sprite.png"
+    }
+
     fn update(&mut self, window: &mut Window) -> Result<()> {
         self.set_screen_size(window.screen_size());
         self.scroll(-0.5, window.screen_size().x);
@@ -54,6 +61,9 @@ impl GameObject for Background {
         }
         Ok(())
     }
+    fn area(&self) -> Rectangle {
+        Rectangle::new(Vector::ZERO, Vector::ZERO)
+    }
 }
 
 impl Background {
@@ -62,7 +72,6 @@ impl Background {
             pos: Vector::ZERO,
             size,
             screen_size: Vector::ZERO,
-            img: "sprite.png",
         }
     }
 
@@ -109,26 +118,76 @@ impl Background {
 struct Player {
     pos: Vector,
     size: Vector,
-    img: &'static str,
 }
 
 impl Player {
     fn new(pos: Vector, size: Vector) -> Self {
-        Player {
-            pos,
-            size,
-            img: "ferris.png",
-        }
+        Player { pos, size }
     }
 }
 
 impl GameObject for Player {
+    fn resource(&self) -> &'static str {
+        "ferris.png"
+    }
+
     fn draw(&mut self, window: &mut Window, img: Option<Rc<Image>>) -> Result<()> {
         let rect = Rectangle::new(self.pos, self.size);
         if let Some(img) = img {
             window.draw(&rect, Img(&img.deref()));
         }
         Ok(())
+    }
+
+    fn area(&self) -> Rectangle {
+        Rectangle::new(self.pos, self.size)
+    }
+
+    fn on_collided(&mut self, other: &GameObject) {
+        self.pos.x = 9999.0;
+        self.pos.y = 9999.0;
+    }
+}
+
+struct Pipe {
+    pos: Vector,
+    size: Vector,
+    img: &'static str,
+}
+
+impl Pipe {
+    fn new(pos: Vector, size: Vector) -> Self {
+        Pipe {
+            pos,
+            size,
+            img: "sprite.png",
+        }
+    }
+}
+
+impl GameObject for Pipe {
+    fn resource(&self) -> &'static str {
+        "sprite.png"
+    }
+
+    fn update(&mut self, _: &mut Window) -> Result<()> {
+        self.pos.x -= 0.5;
+        Ok(())
+    }
+
+    fn draw(&mut self, window: &mut Window, img: Option<Rc<Image>>) -> Result<()> {
+        let rect = Rectangle::new(self.pos, self.size);
+        if let Some(img) = img {
+            let pipe = img
+                .deref()
+                .subimage(Rectangle::new(Vector::new(302, 0), Vector::new(26, 135)));
+            window.draw(&rect, Img(&pipe));
+        }
+        Ok(())
+    }
+
+    fn area(&self) -> Rectangle {
+        Rectangle::new(self.pos, self.size)
     }
 }
 
@@ -142,10 +201,13 @@ fn rect(x1: f32, y1: f32, x2: f32, y2: f32) -> Rectangle {
 }
 
 struct Game {
-    pub cfg: Option<Config>,
-    pub bg: Background,
-    pub player: Player,
-    pub asset_loader: AssetLoader,
+    cfg: Option<Config>,
+    bg: Background,
+    player: Player,
+    enemies: Vec<Pipe>,
+    asset_loader: AssetLoader,
+    last_spawned: u64,
+    frame_count: u64,
 }
 
 impl Game {
@@ -153,6 +215,21 @@ impl Game {
         let mut game = Game::new()?;
         game.cfg = Some(cfg);
         Ok(game)
+    }
+
+    /// Spawn an enemy.
+    fn spawn(&mut self, window: &mut Window) {
+        self.enemies
+            .push(Pipe::new(Vector::new(window.screen_size().x, 0), Vector::new(26, 135)));
+    }
+
+    fn check_collision(&mut self) {
+        for enemy in &mut self.enemies {
+            if enemy.area().overlaps(&self.player.area()) {
+                enemy.on_collided(&self.player);
+                self.player.on_collided(enemy.deref());
+            }
+        }
     }
 }
 
@@ -166,22 +243,46 @@ impl State for Game {
             cfg: None,
             bg: Background::new(Vector::new(144, 256)),
             player: Player::new(Vector::new(40, 20), Vector::new(60, 40)),
+            enemies: vec![],
             asset_loader,
+            last_spawned: 0,
+            frame_count: 0,
         })
     }
 
     fn update(&mut self, window: &mut Window) -> Result<()> {
         self.asset_loader.update();
         self.bg.update(window)?;
+
+        for enemy in &mut self.enemies {
+            enemy.update(window)?;
+        }
+
         // Gravity.
         self.player.pos.y += 1.0;
+
+        // Spawn an enemy.
+        self.frame_count += 1;
+        if (self.frame_count - self.last_spawned) as f64 / window.average_fps() >= 3.0 {
+            self.spawn(window);
+            self.last_spawned = self.frame_count;
+        }
+
+        self.check_collision();
 
         Ok(())
     }
 
     fn draw(&mut self, window: &mut Window) -> Result<()> {
-        self.bg.draw(window, self.asset_loader.get(self.bg.img))?;
-        self.player.draw(window, self.asset_loader.get(self.player.img))?;
+        let bg = &mut self.bg;
+        let player = &mut self.player;
+        let loader = &self.asset_loader;
+
+        bg.draw(window, loader.get(bg.resource()))?;
+        player.draw(window, loader.get(player.resource()))?;
+        for enemy in &mut self.enemies {
+            enemy.draw(window, loader.get(enemy.resource()))?;
+        }
 
         Ok(())
     }
@@ -198,12 +299,8 @@ impl State for Game {
     }
 }
 
-fn init_logger() {
-    //console_log::init_with_level(log::Level::Debug).expect("Couldn't setup logger.");
-}
-
 fn main() {
-    init_logger();
+    compat::init_logger();
     let screen_size = Vector::new(277, 512);
     let cfg = Config { screen_size };
     run_with("FlappyFerris", screen_size, Settings::default(), || Game::create(cfg));
