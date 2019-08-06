@@ -4,7 +4,7 @@ mod compat;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use log::*;
+// use log::*;
 use quicksilver::prelude::*;
 use quicksilver::{
     geom::{Rectangle, Vector},
@@ -105,6 +105,7 @@ impl Background {
         self.pos.x += dx;
         self.pos = self.fit(&self.pos);
 
+        /*
         debug!(
             "scrolling background dx={}, width={}, left={}, right={}",
             dx,
@@ -112,6 +113,7 @@ impl Background {
             self.pos,
             self.right().pos,
         );
+        */
     }
 }
 
@@ -152,16 +154,13 @@ impl GameObject for Player {
 struct Pipe {
     pos: Vector,
     size: Vector,
-    img: &'static str,
 }
 
 impl Pipe {
-    fn new(pos: Vector, size: Vector) -> Self {
-        Pipe {
-            pos,
-            size,
-            img: "sprite.png",
-        }
+    fn new(mut pos: Vector, len: f32) -> Self {
+        let size = Vector::new(26, 135);
+        pos.y -= (size.y * len);
+        Pipe { pos, size, }
     }
 }
 
@@ -191,15 +190,6 @@ impl GameObject for Pipe {
     }
 }
 
-/// Helper to get window rect.
-fn window_rect(window: &Window) -> Rectangle {
-    Rectangle::new(Vector::ZERO, window.screen_size())
-}
-
-fn rect(x1: f32, y1: f32, x2: f32, y2: f32) -> Rectangle {
-    Rectangle::new(Vector::new(x1, y1), Vector::new(x2, y2))
-}
-
 struct Game {
     cfg: Option<Config>,
     bg: Background,
@@ -220,7 +210,7 @@ impl Game {
     /// Spawn an enemy.
     fn spawn(&mut self, window: &mut Window) {
         self.enemies
-            .push(Pipe::new(Vector::new(window.screen_size().x, 0), Vector::new(26, 135)));
+            .push(Pipe::new(Vector::new(window.screen_size().x, 0), compat::randrng(0.0, 0.5)));
     }
 
     fn check_collision(&mut self) {

@@ -12,3 +12,10 @@ pub fn init_logger() {
 //        .unwrap()
 //        .as_secs();
 //}
+pub fn rand() -> f32 {
+    rand::random()
+}
+
+pub fn randrng(min: f32, max: f32) -> f32 {
+    min + (max - min) * rand()
+}
