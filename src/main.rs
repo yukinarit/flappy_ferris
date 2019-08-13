@@ -1,8 +1,11 @@
 mod asset;
 mod compat;
+mod core;
+mod background;
+mod player;
+mod enemy;
 
 use std::ops::Deref;
-use std::rc::Rc;
 
 // use log::*;
 use quicksilver::prelude::*;
@@ -13,181 +16,11 @@ use quicksilver::{
 };
 use serde::Deserialize;
 
-use asset::AssetLoader;
+use crate::{asset::AssetLoader, core::GameObject, background::Background, player::Player, enemy::Pipe};
 
 #[derive(Debug, Deserialize)]
 struct Config {
     screen_size: Vector,
-}
-
-trait GameObject {
-    fn resource(&self) -> &'static str;
-    fn update(&mut self, _: &mut Window) -> Result<()> {
-        Ok(())
-    }
-    fn draw(&mut self, _: &mut Window, _: Option<Rc<Image>>) -> Result<()> {
-        Ok(())
-    }
-    fn area(&self) -> Rectangle;
-    fn on_collided(&mut self, other: &GameObject) {}
-}
-
-struct Background {
-    pos: Vector,
-    size: Vector,
-    screen_size: Vector,
-}
-
-impl GameObject for Background {
-    fn resource(&self) -> &'static str {
-        "sprite.png"
-    }
-
-    fn update(&mut self, window: &mut Window) -> Result<()> {
-        self.set_screen_size(window.screen_size());
-        self.scroll(-0.5, window.screen_size().x);
-        Ok(())
-    }
-
-    fn draw(&mut self, window: &mut Window, img: Option<Rc<Image>>) -> Result<()> {
-        let left = self.left();
-        let right = self.right();
-        if let Some(img) = img {
-            let bg = img
-                .deref()
-                .subimage(Rectangle::new(Vector::ZERO, Vector::new(144, 256)));
-            window.draw(&left, Img(&bg));
-            window.draw(&right, Img(&bg));
-        }
-        Ok(())
-    }
-    fn area(&self) -> Rectangle {
-        Rectangle::new(Vector::ZERO, Vector::ZERO)
-    }
-}
-
-impl Background {
-    fn new(size: Vector) -> Self {
-        Background {
-            pos: Vector::ZERO,
-            size,
-            screen_size: Vector::ZERO,
-        }
-    }
-
-    fn set_screen_size(&mut self, size: Vector) {
-        self.screen_size = size
-    }
-
-    fn fit(&self, xy: &Vector) -> Vector {
-        let mut xy = xy.clone();
-        if xy.x < -self.screen_size.x {
-            xy.x = self.screen_size.x;
-        }
-
-        xy
-    }
-
-    fn left(&self) -> Rectangle {
-        Rectangle::new(self.pos, self.screen_size + Vector::new(0.5, 0.0))
-    }
-
-    fn right(&self) -> Rectangle {
-        let right = if self.pos.x < 0.0 {
-            self.pos + self.screen_size.x_comp()
-        } else {
-            self.pos - self.screen_size.x_comp()
-        };
-        Rectangle::new(self.fit(&right), self.screen_size + Vector::new(0.5, 0.0))
-    }
-
-    fn scroll(&mut self, dx: f32, screen_width: f32) {
-        self.pos.x += dx;
-        self.pos = self.fit(&self.pos);
-
-        /*
-        debug!(
-            "scrolling background dx={}, width={}, left={}, right={}",
-            dx,
-            screen_width,
-            self.pos,
-            self.right().pos,
-        );
-        */
-    }
-}
-
-struct Player {
-    pos: Vector,
-    size: Vector,
-}
-
-impl Player {
-    fn new(pos: Vector, size: Vector) -> Self {
-        Player { pos, size }
-    }
-}
-
-impl GameObject for Player {
-    fn resource(&self) -> &'static str {
-        "ferris.png"
-    }
-
-    fn draw(&mut self, window: &mut Window, img: Option<Rc<Image>>) -> Result<()> {
-        let rect = Rectangle::new(self.pos, self.size);
-        if let Some(img) = img {
-            window.draw(&rect, Img(&img.deref()));
-        }
-        Ok(())
-    }
-
-    fn area(&self) -> Rectangle {
-        Rectangle::new(self.pos, self.size)
-    }
-
-    fn on_collided(&mut self, other: &GameObject) {
-        self.pos.x = 9999.0;
-        self.pos.y = 9999.0;
-    }
-}
-
-struct Pipe {
-    pos: Vector,
-    size: Vector,
-}
-
-impl Pipe {
-    fn new(mut pos: Vector, len: f32) -> Self {
-        let size = Vector::new(26, 135);
-        pos.y -= (size.y * len);
-        Pipe { pos, size, }
-    }
-}
-
-impl GameObject for Pipe {
-    fn resource(&self) -> &'static str {
-        "sprite.png"
-    }
-
-    fn update(&mut self, _: &mut Window) -> Result<()> {
-        self.pos.x -= 0.5;
-        Ok(())
-    }
-
-    fn draw(&mut self, window: &mut Window, img: Option<Rc<Image>>) -> Result<()> {
-        let rect = Rectangle::new(self.pos, self.size);
-        if let Some(img) = img {
-            let pipe = img
-                .deref()
-                .subimage(Rectangle::new(Vector::new(302, 0), Vector::new(26, 135)));
-            window.draw(&rect, Img(&pipe));
-        }
-        Ok(())
-    }
-
-    fn area(&self) -> Rectangle {
-        Rectangle::new(self.pos, self.size)
-    }
 }
 
 struct Game {
