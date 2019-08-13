@@ -8,6 +8,7 @@ use quicksilver::{
     lifecycle::Window,
     Result,
 };
+
 use crate::core::GameObject;
 
 pub struct Background {
@@ -85,8 +86,12 @@ impl GameObject for Background {
             let bg = img
                 .deref()
                 .subimage(Rectangle::new(Vector::ZERO, Vector::new(144, 256)));
+            let ground = img
+                .deref()
+                .subimage(Rectangle::new(Vector::new(146, 0), Vector::new(154, 56)));
             window.draw(&left, Img(&bg));
             window.draw(&right, Img(&bg));
+            window.draw(&Rectangle::new(Vector::new(0, 400), Vector::new(308, 112)), Img(&ground));
         }
         Ok(())
     }
