@@ -7,7 +7,7 @@ mod enemy;
 
 use std::ops::Deref;
 
-// use log::*;
+use log::*;
 use quicksilver::prelude::*;
 use quicksilver::{
     geom::{Rectangle, Vector},
@@ -93,6 +93,8 @@ impl State for Game {
 
         self.check_collision();
 
+        debug!("{}", self.player.pos);
+
         Ok(())
     }
 
@@ -123,7 +125,8 @@ impl State for Game {
 }
 
 fn main() {
-    compat::init_logger();
+    stdweb_logger::init();
+    log::set_max_level(log::LevelFilter::Info);
     let screen_size = Vector::new(277, 512);
     let cfg = Config { screen_size };
     run_with("FlappyFerris", screen_size, Settings::default(), || Game::create(cfg));
