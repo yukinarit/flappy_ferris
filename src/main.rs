@@ -11,7 +11,7 @@ use quicksilver::{
     lifecycle::{run_with, Settings},
 };
 
-use crate::scene::{Config, Game};
+use crate::scene::{Config, System};
 
 fn main() {
     stdweb_logger::init();
@@ -19,6 +19,6 @@ fn main() {
     let screen_size = Vector::new(277, 512);
     let cfg = Config { screen_size };
     run_with("FlappyFerris", screen_size, Settings::default(), || {
-        Game::create(cfg)
+        System::create(cfg)
     });
 }
