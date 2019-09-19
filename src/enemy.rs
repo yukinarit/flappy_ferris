@@ -1,10 +1,10 @@
-use std::rc::Rc;
 use std::ops::Deref;
+use std::rc::Rc;
 
 use quicksilver::prelude::*;
 use quicksilver::{
-    graphics::Image,
     geom::{Rectangle, Vector},
+    graphics::Image,
     lifecycle::Window,
     Result,
 };
@@ -20,7 +20,7 @@ impl Pipe {
     pub fn new(mut pos: Vector, len: f32) -> Self {
         let size = Vector::new(26, 135);
         pos.y -= (size.y * len);
-        Pipe { pos, size, }
+        Pipe { pos, size }
     }
 }
 

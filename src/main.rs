@@ -1,22 +1,24 @@
 mod asset;
+mod background;
 mod compat;
 mod core;
-mod background;
-mod player;
 mod enemy;
+mod player;
 
 use std::ops::Deref;
 
 use log::*;
 use quicksilver::prelude::*;
 use quicksilver::{
-    geom::{Rectangle, Vector},
+    geom::Vector,
     lifecycle::{run_with, Settings, State, Window},
     Result,
 };
 use serde::Deserialize;
 
-use crate::{asset::AssetLoader, core::GameObject, background::Background, player::Player, enemy::Pipe};
+use crate::{
+    asset::AssetLoader, background::Background, core::GameObject, enemy::Pipe, player::Player,
+};
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -42,8 +44,10 @@ impl Game {
 
     /// Spawn an enemy.
     fn spawn(&mut self, window: &mut Window) {
-        self.enemies
-            .push(Pipe::new(Vector::new(window.screen_size().x, 0), compat::randrng(0.0, 0.5)));
+        self.enemies.push(Pipe::new(
+            Vector::new(window.screen_size().x, 0),
+            compat::randrng(0.0, 0.5),
+        ));
     }
 
     fn check_collision(&mut self) {
@@ -129,5 +133,7 @@ fn main() {
     log::set_max_level(log::LevelFilter::Info);
     let screen_size = Vector::new(277, 512);
     let cfg = Config { screen_size };
-    run_with("FlappyFerris", screen_size, Settings::default(), || Game::create(cfg));
+    run_with("FlappyFerris", screen_size, Settings::default(), || {
+        Game::create(cfg)
+    });
 }

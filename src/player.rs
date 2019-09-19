@@ -1,10 +1,10 @@
-use std::rc::Rc;
 use std::ops::Deref;
+use std::rc::Rc;
 
 use quicksilver::prelude::*;
 use quicksilver::{
-    graphics::Image,
     geom::{Rectangle, Vector},
+    graphics::Image,
     lifecycle::Window,
     Result,
 };

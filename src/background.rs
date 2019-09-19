@@ -1,10 +1,10 @@
-use std::rc::Rc;
 use std::ops::Deref;
+use std::rc::Rc;
 
 use quicksilver::prelude::*;
 use quicksilver::{
-    graphics::Image,
     geom::{Rectangle, Vector},
+    graphics::Image,
     lifecycle::Window,
     Result,
 };
@@ -91,7 +91,10 @@ impl GameObject for Background {
                 .subimage(Rectangle::new(Vector::new(146, 0), Vector::new(154, 56)));
             window.draw(&left, Img(&bg));
             window.draw(&right, Img(&bg));
-            window.draw(&Rectangle::new(Vector::new(0, 400), Vector::new(308, 112)), Img(&ground));
+            window.draw(
+                &Rectangle::new(Vector::new(0, 400), Vector::new(308, 112)),
+                Img(&ground),
+            );
         }
         Ok(())
     }

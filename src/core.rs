@@ -1,10 +1,5 @@
+use quicksilver::{geom::Rectangle, graphics::Image, lifecycle::Window, Result};
 use std::rc::Rc;
-use quicksilver::{
-    geom::Rectangle,
-    lifecycle::Window,
-    graphics::Image,
-    Result,
-};
 
 pub trait GameObject {
     fn resource(&self) -> &'static str;
