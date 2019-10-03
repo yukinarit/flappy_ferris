@@ -22,7 +22,7 @@ impl AssetLoader {
     pub fn load(&mut self, path: String) {
         self.assets.insert(
             path.clone(),
-            RefCell::new(Asset::new(Image::load(path).map(|img| Rc::new(img)))),
+            RefCell::new(Asset::new(Image::load(path).map(Rc::new))),
         );
         self.loaded = false;
     }
@@ -38,7 +38,7 @@ impl AssetLoader {
 
         let mut loaded = true;
 
-        for (_, v) in &self.assets {
+        for v in self.assets.values() {
             if let Ok(mut asset) = v.try_borrow_mut() {
                 asset.execute(|_| Ok(())).unwrap();
 

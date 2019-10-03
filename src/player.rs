@@ -39,7 +39,7 @@ impl GameObject for Player {
         Rectangle::new(self.pos, self.size)
     }
 
-    fn on_collided(&mut self, other: &GameObject) {
+    fn on_collided(&mut self, _other: &GameObject) {
         self.pos.x = 9999.0;
         self.pos.y = 9999.0;
     }

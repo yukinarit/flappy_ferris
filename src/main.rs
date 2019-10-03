@@ -6,10 +6,7 @@ mod enemy;
 mod player;
 mod scene;
 
-use quicksilver::{
-    geom::Vector,
-    lifecycle::{run, Settings},
-};
+use quicksilver::lifecycle::{run, Settings};
 
 use crate::scene::{System, SCREEN_SIZE};
 

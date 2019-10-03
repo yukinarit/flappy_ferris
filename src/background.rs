@@ -13,15 +13,13 @@ use crate::core::GameObject;
 
 pub struct Background {
     pos: Vector,
-    size: Vector,
     screen_size: Vector,
 }
 
 impl Background {
-    pub fn new(size: Vector) -> Self {
+    pub fn new() -> Self {
         Background {
             pos: Vector::ZERO,
-            size,
             screen_size: Vector::ZERO,
         }
     }
@@ -51,14 +49,14 @@ impl Background {
         Rectangle::new(self.fit(right), self.screen_size + Vector::new(0.5, 0.0))
     }
 
-    pub fn scroll(&mut self, dx: f32, screen_width: f32) {
+    pub fn scroll(&mut self, dx: f32) {
         self.pos.x += dx;
         self.pos = self.fit(self.pos);
 
         /*
         debug!(
             "scrolling background dx={}, width={}, left={}, right={}",
-            dx,
+            dx_,
             screen_width,
             self.pos,
             self.right().pos,
@@ -74,7 +72,7 @@ impl GameObject for Background {
 
     fn update(&mut self, window: &mut Window) -> Result<()> {
         self.set_screen_size(window.screen_size());
-        self.scroll(-0.5, window.screen_size().x);
+        self.scroll(-0.5);
         Ok(())
     }
 

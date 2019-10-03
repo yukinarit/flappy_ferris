@@ -53,7 +53,7 @@ impl State for Game {
         asset_loader.load("ferris.png".into());
 
         Ok(Game {
-            bg: Background::new(Vector::new(144, 256)),
+            bg: Background::new(),
             player: Player::new(Vector::new(40, 20), Vector::new(60, 40)),
             enemies: vec![],
             asset_loader,
@@ -102,11 +102,8 @@ impl State for Game {
     }
 
     fn event(&mut self, event: &Event, _: &mut Window) -> Result<()> {
-        match event {
-            Event::MouseButton(_, ButtonState::Released) => {
-                self.player.pos.y -= 64.0;
-            }
-            _ => {}
+        if let Event::MouseButton(_, ButtonState::Released) = event {
+            self.player.pos.y -= 64.0;
         }
 
         Ok(())
