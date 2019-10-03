@@ -4,23 +4,21 @@ use quicksilver::{
     Result,
 };
 
-use crate::scene::{Config, Game};
+use crate::scene::Game;
+
+pub use crate::core::SCREEN_SIZE;
 
 pub struct System {
     pub game: Option<Game>,
 }
 
-impl System {
-    pub fn create(cfg: Config) -> Result<Self> {
-        let mut system = System::new()?;
-        system.game = Some(Game::create(cfg).unwrap());
-        Ok(system)
-    }
-}
+impl System {}
 
 impl State for System {
     fn new() -> Result<System> {
-        Ok(System { game: None })
+        Ok(System {
+            game: Some(Game::new()?),
+        })
     }
 
     fn update(&mut self, window: &mut Window) -> Result<()> {

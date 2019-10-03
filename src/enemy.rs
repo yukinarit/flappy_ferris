@@ -18,7 +18,7 @@ pub struct Pipe {
 
 impl Pipe {
     pub fn new(mut pos: Vector, len: f32) -> Self {
-        let size = Vector::new(26, 135);
+        let size = Vector::new(26, 135) * 1.5;
         pos.y -= (size.y * len);
         Pipe { pos, size }
     }

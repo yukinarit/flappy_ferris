@@ -13,13 +13,7 @@ use crate::{
     player::Player,
 };
 
-#[derive(Debug)]
-pub struct Config {
-    pub screen_size: Vector,
-}
-
 pub struct Game {
-    cfg: Option<Config>,
     bg: Background,
     player: Player,
     enemies: Vec<Pipe>,
@@ -29,12 +23,6 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn create(cfg: Config) -> Result<Self> {
-        let mut game = Game::new()?;
-        game.cfg = Some(cfg);
-        Ok(game)
-    }
-
     /// Spawn an enemy.
     fn spawn(&mut self, window: &mut Window) {
         self.enemies.push(Pipe::new(
@@ -50,6 +38,11 @@ impl Game {
                 self.player.on_collided(enemy.deref());
             }
         }
+
+        if self.bg.area().overlaps(&self.player.area()) {
+            self.bg.on_collided(&self.player);
+            self.player.on_collided(&self.bg);
+        }
     }
 }
 
@@ -60,7 +53,6 @@ impl State for Game {
         asset_loader.load("ferris.png".into());
 
         Ok(Game {
-            cfg: None,
             bg: Background::new(Vector::new(144, 256)),
             player: Player::new(Vector::new(40, 20), Vector::new(60, 40)),
             enemies: vec![],
@@ -79,7 +71,7 @@ impl State for Game {
         }
 
         // Gravity.
-        self.player.pos.y += 1.0;
+        self.player.pos.y += 2.0;
 
         // Spawn an enemy.
         self.frame_count += 1;
@@ -112,7 +104,7 @@ impl State for Game {
     fn event(&mut self, event: &Event, _: &mut Window) -> Result<()> {
         match event {
             Event::MouseButton(_, ButtonState::Released) => {
-                self.player.pos.y -= 24.0;
+                self.player.pos.y -= 64.0;
             }
             _ => {}
         }

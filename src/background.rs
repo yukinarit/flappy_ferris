@@ -30,8 +30,7 @@ impl Background {
         self.screen_size = size
     }
 
-    pub fn fit(&self, xy: &Vector) -> Vector {
-        let mut xy = xy.clone();
+    pub fn fit(&self, mut xy: Vector) -> Vector {
         if xy.x < -self.screen_size.x {
             xy.x = self.screen_size.x;
         }
@@ -49,12 +48,12 @@ impl Background {
         } else {
             self.pos - self.screen_size.x_comp()
         };
-        Rectangle::new(self.fit(&right), self.screen_size + Vector::new(0.5, 0.0))
+        Rectangle::new(self.fit(right), self.screen_size + Vector::new(0.5, 0.0))
     }
 
     pub fn scroll(&mut self, dx: f32, screen_width: f32) {
         self.pos.x += dx;
-        self.pos = self.fit(&self.pos);
+        self.pos = self.fit(self.pos);
 
         /*
         debug!(
@@ -85,14 +84,15 @@ impl GameObject for Background {
         if let Some(img) = img {
             let bg = img
                 .deref()
-                .subimage(Rectangle::new(Vector::ZERO, Vector::new(144, 256)));
+                .subimage(Rectangle::new(Vector::new(0, 40), Vector::new(144, 191)));
+
             let ground = img
                 .deref()
                 .subimage(Rectangle::new(Vector::new(146, 0), Vector::new(154, 56)));
             window.draw(&left, Img(&bg));
             window.draw(&right, Img(&bg));
             window.draw(
-                &Rectangle::new(Vector::new(0, 400), Vector::new(308, 112)),
+                &Rectangle::new(Vector::new(0, 320), Vector::new(308, 112)),
                 Img(&ground),
             );
         }
@@ -100,6 +100,6 @@ impl GameObject for Background {
     }
 
     fn area(&self) -> Rectangle {
-        Rectangle::new(Vector::ZERO, Vector::ZERO)
+        Rectangle::new(Vector::new(0, 320), Vector::new(308, 112))
     }
 }

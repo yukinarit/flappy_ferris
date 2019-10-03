@@ -8,17 +8,14 @@ mod scene;
 
 use quicksilver::{
     geom::Vector,
-    lifecycle::{run_with, Settings},
+    lifecycle::{run, Settings},
 };
 
-use crate::scene::{Config, System};
+use crate::scene::{System, SCREEN_SIZE};
 
 fn main() {
     stdweb_logger::init();
     log::set_max_level(log::LevelFilter::Info);
-    let screen_size = Vector::new(277, 512);
-    let cfg = Config { screen_size };
-    run_with("FlappyFerris", screen_size, Settings::default(), || {
-        System::create(cfg)
-    });
+
+    run::<System>("FlappyFerris", SCREEN_SIZE.into(), Settings::default());
 }
