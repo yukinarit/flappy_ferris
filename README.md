@@ -1,6 +1,8 @@
 Flappy Ferris
 =============
 
+![](demo.gif)
+
 Setup
 -----
 
